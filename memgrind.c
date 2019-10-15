@@ -3,10 +3,8 @@
 #include "mymalloc.h"
 
 int main(int argc, char** argv) {
-    char* k = malloc(sizeof(char) * 2);
-    k[0] = 'C';
-    k[1] = 'H';
-    printf("%s\n", k);
-    char* j = malloc(sizeof(char) * 4);
+    char* ptr1 = malloc(sizeof(char) * 3);
+    char* ptr2 = malloc(sizeof(char) * 5);
+    char* ptr3 = malloc(sizeof(char) * 7);
     return 0;
 }
