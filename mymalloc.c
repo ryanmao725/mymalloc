@@ -6,9 +6,6 @@
 static char myblock[MEM_SIZE];
 
 void* mymalloc(size_t size, char* file, int line) {
-    //*((short*)myblock) = 253;
-    //*((short*)myblock) = 16387;
-    //int sizes = chunksize(0);
     // Calculate the size that we need to store this memory
     size_t allocSize = 1;
     if (size >= 64) {
@@ -34,15 +31,26 @@ void* mymalloc(size_t size, char* file, int line) {
             if (memSize + 1 + bytesize >= allocSize || (memSize == 0 && MEM_SIZE >= allocSize + i)) {
                 // ALLOCATE THIS MEM CHUNK
                 printf("ALLOCATING: %d\n", i);
+                unsigned char* returnPtr = memchunk + 1;
                 if (size < 64) {
                     printf("ALLOCATING at byte %d, with memsize %d, with value %d\n", i, size, (size << 2) + 1);
                     *(memchunk) = (size << 2) + 1;
-                    return memchunk + 1;
+                    returnPtr = memchunk + 1;
                 } else {
                     printf("ALLOCATING at byte %d, with memsize %d, with value %d\n", i, size, (size << 2) + 3 + 256);
                     *((short*)memchunk) = (size << 2) + 3 + 256;
-                    return memchunk + 2;
+                    returnPtr = memchunk + 2;
                 }
+                if (memSize != 0 && memSize + 1 + bytesize - allocSize > 0) {
+                    unsigned char* ptr = memchunk + allocSize;
+                    int newSize = memSize + 1 + bytesize - allocSize;
+                    if (newSize < 64) {
+                        *(ptr) = (newSize << 2);
+                    } else {
+                        *((short*)ptr) = (size << 2) + 2 + 256;
+                    }
+                }
+                return returnPtr;
             } else {
                 // Unfortunately, we don't have enough space, lets go to the next available memory chunk
                 i += memSize + 1;
