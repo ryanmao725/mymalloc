@@ -4,12 +4,15 @@
 #include "mymalloc.h"
 
 int main(int argc, char** argv) {
-    int* k = (int*)malloc(sizeof(int) * 8);
+    char* k = (char*)malloc(sizeof(char) * 2);
+    k[0] = "c";
+    k[1] = "h";
+    printf("ch");
 }
-
 
 static char myblock[4096];
 
 void* mymalloc(size_t size, char* file, int line) {
-    printf("%u", size);
+    printf("%u\n%u", size, sizeof(int));
+    int i = 0; 
 }
