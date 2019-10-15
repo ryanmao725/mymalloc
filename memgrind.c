@@ -128,15 +128,15 @@ int main(int argc, char** argv) {
     while (workload_count < workload_iteration_count) {
         workload_A_times[workload_count] = workload_A(150);
         workload_B_times[workload_count] = workload_B(1);
-        //workload_C_times[workload_count] = workload_C(1);
-        //workload_D_times[workload_count] = workload_D(1);
+        workload_C_times[workload_count] = workload_C(1);
+        workload_D_times[workload_count] = workload_D(1);
         //printf("Workload A time was: %ld\n", workload_A());
         workload_count++;
     }
     printf("Workload A time: %ld\n", average_time(workload_A_times, workload_iteration_count));
-    //printf("Workload B time: %ld\n", average_time(workload_B_times, workload_iteration_count));
-    //printf("Workload C time: %ld\n", average_time(workload_C_times, workload_iteration_count));
-    //printf("Workload D time: %ld\n", average_time(workload_D_times, workload_iteration_count));
+    printf("Workload B time: %ld\n", average_time(workload_B_times, workload_iteration_count));
+    printf("Workload C time: %ld\n", average_time(workload_C_times, workload_iteration_count));
+    printf("Workload D time: %ld\n", average_time(workload_D_times, workload_iteration_count));
     int i = 0;
     for (i; i < workload_iteration_count; i++) {
         //printf("Workload C time %d: %ld\n", i, workload_C_times[i]);

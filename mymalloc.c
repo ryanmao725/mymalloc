@@ -117,6 +117,9 @@ void myfree(void* ptr, char* file, int line) {
                 lastchunk = memchunk;
             } else {
                 int newMemSize = chunksize(lastchunk) + memSize + 1 + bytesize;
+                if (newMemSize == 65) {
+                    newMemSize = 64;
+                }
                 if (newMemSize < 64) {
                     *(lastchunk) = (newMemSize << 2);
                 } else {
