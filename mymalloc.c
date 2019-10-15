@@ -69,11 +69,11 @@ void* mymalloc(size_t size, char* file, int line) {
                 size += newSize;
                 unsigned char* returnPtr = memchunk + 1;
                 if (size < 64) {
-                    printf("ALLOCATING at byte %d, with memsize %d, with value %d\n", i, size, (size << 2) + 1);
+                    printf("ALLOCATING at byte %d, with memsize %zu, with value %zu\n", i, size, (size << 2) + 1);
                     *(memchunk) = (size << 2) + 1;
                     returnPtr = memchunk + 1;
                 } else {
-                    printf("ALLOCATING at byte %d, with memsize %d, with value %d\n", i, size, (size << 2) + 3 + 256);
+                    printf("ALLOCATING at byte %d, with memsize %zu, with value %zu\n", i, size, (size << 2) + 3 + 256);
                     *((short*)memchunk) = (size << 2) + 3 + 256;
                     returnPtr = memchunk + 2;
                 }
