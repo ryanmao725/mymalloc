@@ -1,1 +1,11 @@
+Workload E:
+For Workload E, we wanted to test our malloc function's capability and efficiency for merging free memory space.
+For example, if we were to malloc three t-sized pointers in succession, then free the memory starting from the middle, then the malloc function should consolidate the individual free memory spaces.
+Our plan is as follows:
+    Allocate 51 1 byte pointers.
+    Free the 26th pointer (the middle one).
+    Going outward from the middle in both directions, free the rest of the pointers.
+    Repeat this 150 times in succession.
 
+Workload F:
+For Workload F,
