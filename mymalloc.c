@@ -14,7 +14,7 @@
 // Define our memory block location
 static char myblock[MEM_SIZE];
 /**
- * malloc override method, that will be used instead of the default call to the malloc command
+ * Malloc override method, that will be used instead of the default call to the malloc command
  */
 void* mymalloc(size_t size, char* file, int line) {
     // Calculate the size that we need to store this memory
@@ -94,22 +94,17 @@ void* mymalloc(size_t size, char* file, int line) {
     printf("OutOfMemory Error: \n    Attempted to allocate more memory than available in line %d, %s\n", line, file);
     return NULL; // If we can't allocate anything, simply return a NULL
 }
-
+/**
+ * Free override method, that will be used instead of the default call to the free command
+ */
 void myfree(void* ptr, char* file, int line) {
-    // Find the start of the meta data
-    unsigned char* memchunk = ptr - 1;
-    if ((*memchunk & 1) == 0) {
-        memchunk = ptr - 2;
-    }
-    // Reset the value
-    unsigned int memSize = chunksize(memchunk);
-    if (memSize < 64) {
-        *(memchunk) = (memSize << 2);
-    } else {
-        *((short*)memchunk) = (memSize << 2) + 2 + 256;
+    if (ptr == NULL) {
+        printf("NullPointer Error: \n    Cannot deallocate null in line %d, %s\n", line, file);
+        return;
     }
     // Loop through the memory to merge chunks that aren't in use
     int i = 0;
+    int deleted = 0;
     // Create a pointer to the previous pointer location
     unsigned char* lastchunk = NULL;
     while (i < MEM_SIZE) {
@@ -128,7 +123,21 @@ void myfree(void* ptr, char* file, int line) {
                     *((short*)lastchunk) = (newMemSize << 2) + 2 + 256;
                 }
             }
+            if (memchunk + 1 + bytesize == ptr && deleted != 1) {
+                deleted = 1;
+                printf("RedundantFree Error:\n    Cannot deallocate memory that was already deallocate in line %d, %s\n", line, file);
+            }
         } else {
+            // Verify that this isn't the memory pointer we were given
+            if (memchunk + 1 + bytesize == ptr) {
+                if (memSize < 64) {
+                    *(memchunk) = (memSize << 2);
+                } else {
+                    *((short*)memchunk) = (memSize << 2) + 2 + 256;
+                }
+                deleted = 1;
+                continue;
+            }
             lastchunk = NULL;
         }
         // iterate through the memory
@@ -142,6 +151,9 @@ void myfree(void* ptr, char* file, int line) {
     }
     if (lastchunk != NULL) {
         *(lastchunk) = 0;
+    }
+    if (deleted != 1) {
+        printf("Deallocation Error: \n    Attempted to deallocate an invalid pointer in line %d, %s\n", line, file);
     }
 }
 /**
