@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include<time.h> //Need to include time.h to record times for the workloads
-#include "mymalloc.h"
+//#include "mymalloc.h"
     
 //Workload A
 //This will malloc() one byte, and then immediately free() it.
@@ -86,12 +86,12 @@ long workload_D(int number_of_runs) {
         if (random_num == 0) { //If that number is 0, malloc();
             int random_size = (rand() % 64) + 1; //Generate between 1 and 64.
             //printf("Size: %d at pos: %d\n", random_size, number_of_allocated);
-            //storage[number_of_allocated] =  malloc(random_size);
+            storage[number_of_allocated] =  malloc(random_size);
             number_of_times_malloced++;
             number_of_allocated++;
         } else { //Else free();
             if (number_of_allocated > 0) {
-                //free(storage[number_of_allocated - 1]);
+                free(storage[number_of_allocated - 1]);
                 number_of_allocated--;
             }
         }
@@ -99,7 +99,35 @@ long workload_D(int number_of_runs) {
 
     int i = 0;
     for (i; i < number_of_allocated; i++) {
-        //free(storage[i]);
+        free(storage[i]);
+    }
+    gettimeofday(&tv_end, NULL);
+    return (tv_end.tv_usec - tv_start.tv_usec);
+}
+
+//Workload E
+//This will malloc 51 1 byte pointers.
+//It will then begin to free them from the middle towards the ends
+//Number of Runs: 3
+//
+//This workload is mainly to compare between workload B and how efficient our merging of unused memory is.
+long workload_E(int number_of_runs) {
+    struct timeval tv_start, tv_end;
+    int i = 0;
+    char* storage[51];
+    gettimeofday(&tv_start, NULL);
+    while (i < number_of_runs) {
+        //Create the 51 1 byte pointers.
+        int j = 0;
+        for (j; j < 51; j++) {
+            storage[j] = malloc(1);
+        }
+        //Free those pointers from the inside out.
+        j = 0;
+        for (j; j < 25; j++) {
+            free(storage[25 + j]);
+            free(storage[25 - j]);
+        }
     }
     gettimeofday(&tv_end, NULL);
     return (tv_end.tv_usec - tv_start.tv_usec);
@@ -127,16 +155,18 @@ int main(int argc, char** argv) {
 
     while (workload_count < workload_iteration_count) {
         workload_A_times[workload_count] = workload_A(150);
-        workload_B_times[workload_count] = workload_B(1);
-        //workload_C_times[workload_count] = workload_C(1);
-        //workload_D_times[workload_count] = workload_D(1);
+        workload_B_times[workload_count] = workload_B(3);
+        workload_C_times[workload_count] = workload_C(1);
+        workload_D_times[workload_count] = workload_D(1);
+        workload_E_times[workload_count] = workload_E(3);
         //printf("Workload A time was: %ld\n", workload_A());
         workload_count++;
     }
     printf("Workload A time: %ld\n", average_time(workload_A_times, workload_iteration_count));
-    //printf("Workload B time: %ld\n", average_time(workload_B_times, workload_iteration_count));
-    //printf("Workload C time: %ld\n", average_time(workload_C_times, workload_iteration_count));
-    //printf("Workload D time: %ld\n", average_time(workload_D_times, workload_iteration_count));
+    printf("Workload B time: %ld\n", average_time(workload_B_times, workload_iteration_count));
+    printf("Workload C time: %ld\n", average_time(workload_C_times, workload_iteration_count));
+    printf("Workload D time: %ld\n", average_time(workload_D_times, workload_iteration_count));
+    printf("Workload E time: %ld\n", average_time(workload_E_times, workload_iteration_count));
     int i = 0;
     for (i; i < workload_iteration_count; i++) {
         //printf("Workload C time %d: %ld\n", i, workload_C_times[i]);
