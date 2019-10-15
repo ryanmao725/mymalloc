@@ -5,14 +5,35 @@
 
 static char myblock[MEM_SIZE];
 
+void printMem() {
+    int i = 0;
+    while (i < MEM_SIZE) {
+        unsigned char* memchunk = &myblock[i];
+        int inUse = (*memchunk & 1);
+        int memSize = chunksize(memchunk);
+        unsigned int bytesize = (*memchunk >> 1) & 1;
+        printf("ITERATING at byte %d. USE=%d, SIZE=%d, ALLOCSIZE=%d\n", i, inUse, memSize, memSize + 1 + bytesize);
+        i += memSize + 1;
+        if (memSize >= 64) {
+            i += 1;
+        }
+        if (memSize == 0) {
+            break;
+        }
+    }
+}
+
+
+
 void* mymalloc(size_t size, char* file, int line) {
+    printf("\n\n");
+    printMem();
     // Calculate the size that we need to store this memory
     size_t allocSize = 1;
     if (size >= 64) {
         allocSize += 1;
     }
     allocSize += size;
-    printf("Allocation Size: %d\n", allocSize);
     // Initialize our variables
     unsigned int i = 0;
     while (i < MEM_SIZE) {
@@ -21,7 +42,6 @@ void* mymalloc(size_t size, char* file, int line) {
         int inUse = (*memchunk & 1);
         int memSize = chunksize(memchunk);
         unsigned int bytesize = (*memchunk >> 1) & 1;
-        printf("ITERATING at byte %d. USE=%d, SIZE=%d\n", i, inUse, memSize);
         if (inUse == 1) { // This memory is in use, skip over it
             i += memSize + 1;
             if (memSize >= 64) {
@@ -30,7 +50,23 @@ void* mymalloc(size_t size, char* file, int line) {
         } else { // This memory is not in use, analyze further
             if (memSize + 1 + bytesize >= allocSize || (memSize == 0 && MEM_SIZE >= allocSize + i)) {
                 // ALLOCATE THIS MEM CHUNK
-                printf("ALLOCATING: %d\n", i);
+                int newSize = -1;
+                if (memSize != 0 && memSize + 1 + bytesize - allocSize > 0) {
+                    unsigned char* ptr = memchunk + allocSize;
+                    newSize = memSize + bytesize - allocSize;
+                    printf("%d", newSize);
+                    if (newSize < 64) {
+                        *(ptr) = (newSize << 2);
+                    } else {
+                        *((short*)ptr) = (size << 2) + 2 + 256;
+                    }
+                }
+                if (newSize == 0) {
+                    newSize = 1;
+                } else {
+                    newSize = 0;
+                }
+                size += newSize;
                 unsigned char* returnPtr = memchunk + 1;
                 if (size < 64) {
                     printf("ALLOCATING at byte %d, with memsize %d, with value %d\n", i, size, (size << 2) + 1);
@@ -40,15 +76,6 @@ void* mymalloc(size_t size, char* file, int line) {
                     printf("ALLOCATING at byte %d, with memsize %d, with value %d\n", i, size, (size << 2) + 3 + 256);
                     *((short*)memchunk) = (size << 2) + 3 + 256;
                     returnPtr = memchunk + 2;
-                }
-                if (memSize != 0 && memSize + 1 + bytesize - allocSize > 0) {
-                    unsigned char* ptr = memchunk + allocSize;
-                    int newSize = memSize + 1 + bytesize - allocSize;
-                    if (newSize < 64) {
-                        *(ptr) = (newSize << 2);
-                    } else {
-                        *((short*)ptr) = (size << 2) + 2 + 256;
-                    }
                 }
                 return returnPtr;
             } else {
@@ -70,6 +97,8 @@ void* mymalloc(size_t size, char* file, int line) {
 }
 
 void myfree(void* ptr, char* file, int line) {
+    printf("\n\n");
+    printMem();
     // Find the start of the meta data
     unsigned char* memchunk = ptr - 1;
     if ((*memchunk & 1) == 0) {
@@ -82,6 +111,8 @@ void myfree(void* ptr, char* file, int line) {
     } else {
         *((short*)memchunk) = (memSize << 2) + 2 + 256;
     }
+    printf("\n\n");
+    printMem();
 }
 
 unsigned int chunksize(unsigned char* memchunk) {
