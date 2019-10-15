@@ -18,7 +18,6 @@
 #define free(x) myfree(x, __FILE__, __LINE__)
 // Auxilary variables
 #define MEM_SIZE 4096
-#define DEBUG 1
 // Function definition headers
 void* mymalloc(size_t, char*, int);
 void myfree(void*, char*, int);
