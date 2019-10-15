@@ -11,6 +11,6 @@
 void* mymalloc(size_t, char*, int);
 void myfree(void*, char*, int);
 
-int chunksize(int index);
+unsigned int chunksize(unsigned char* memchunk);
 
 #endif

@@ -19,11 +19,11 @@ void* mymalloc(size_t size, char* file, int line) {
     // Initialize our variables
     unsigned int i = 0;
     while (i < MEM_SIZE) {
-        printf("ITERATING at byte %d\n", i);
         // Analyze this memory chunk
         unsigned char* memchunk = &myblock[i];
         int inUse = (*memchunk & 1);
-        int memSize = chunksize(i);
+        int memSize = chunksize(memchunk);
+        printf("ITERATING at byte %d. USE=%d, SIZE=%d\n", i, inUse, memSize);
         if (inUse == 1) { // This memory is in use, skip over it
             i += memSize + 1;
             if (memSize >= 64) {
@@ -61,12 +61,21 @@ void* mymalloc(size_t size, char* file, int line) {
 }
 
 void myfree(void* ptr, char* file, int line) {
-    
+    // Find the start of the meta data
+    unsigned char* memchunk = ptr - 1;
+    if ((*memchunk & 1) == 0) {
+        memchunk = ptr - 2;
+    }
+    // Reset the value
+    unsigned int memSize = chunksize(memchunk);
+    if (memSize < 64) {
+        *(memchunk) = (memSize << 2);
+    } else {
+        *((short*)memchunk) = (memSize << 2) + 2 + 256;
+    }
 }
 
-
-int chunksize(int index) {
-    unsigned char* memchunk = &myblock[index];
+unsigned int chunksize(unsigned char* memchunk) {
     unsigned int bytesize = (*memchunk >> 1) & 1;
     if (bytesize == 0) {
         return (*memchunk >> 2);
