@@ -111,7 +111,42 @@ void myfree(void* ptr, char* file, int line) {
     } else {
         *((short*)memchunk) = (memSize << 2) + 2 + 256;
     }
-    printf("\n\n");
+    // Loop through the memory to merge chunks that aren't in use
+    int i = 0;
+    // Create a pointer to the previous pointer location
+    unsigned char* lastchunk = NULL;
+    while (i < MEM_SIZE) {
+        unsigned char* memchunk = &myblock[i];
+        int inUse = (*memchunk & 1);
+        int memSize = chunksize(memchunk);
+        unsigned int bytesize = (*memchunk >> 1) & 1;
+        if (inUse == 0) {
+            if (lastchunk == NULL) {
+                lastchunk = memchunk;
+            } else {
+                int newMemSize = chunksize(lastchunk) + memSize + 1 + bytesize;
+                if (newMemSize < 64) {
+                    *(lastchunk) = (newMemSize << 2);
+                } else {
+                    *((short*)lastchunk) = (newMemSize << 2) + 2 + 256;
+                }
+            }
+        } else {
+            lastchunk = NULL;
+        }
+        // iterate through the memory
+        i += memSize + 1;
+        if (memSize >= 64) {
+            i += 1;
+        }
+        if (memSize == 0) {
+            break;
+        }
+    }
+    if (lastchunk != NULL) {
+        *(lastchunk) = 0;
+    }
+    printf("\n");
     printMem();
 }
 
