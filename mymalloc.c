@@ -23,6 +23,7 @@ void* mymalloc(size_t size, char* file, int line) {
         unsigned char* memchunk = &myblock[i];
         int inUse = (*memchunk & 1);
         int memSize = chunksize(memchunk);
+        unsigned int bytesize = (*memchunk >> 1) & 1;
         printf("ITERATING at byte %d. USE=%d, SIZE=%d\n", i, inUse, memSize);
         if (inUse == 1) { // This memory is in use, skip over it
             i += memSize + 1;
@@ -30,7 +31,7 @@ void* mymalloc(size_t size, char* file, int line) {
                 i += 1;
             }
         } else { // This memory is not in use, analyze further
-            if (memSize >= allocSize || (memSize == 0 && MEM_SIZE >= allocSize + i)) {
+            if (memSize + 1 + bytesize >= allocSize || (memSize == 0 && MEM_SIZE >= allocSize + i)) {
                 // ALLOCATE THIS MEM CHUNK
                 printf("ALLOCATING: %d\n", i);
                 if (size < 64) {
