@@ -2,12 +2,12 @@
 #include <stdio.h>
 #include<time.h> //Need to include time.h to record times for the workloads
 #include "mymalloc.h"
-
+    
+//Workload A
+//This will malloc() one byte, and then immediately free() it.
+//Number of Runs: 150
 long workload_A(int number_of_runs) {
     struct timeval tv_start, tv_end;
-    //A
-    //This will malloc() one byte, and then immediately free() it.
-    //Number of Runs: 150
     int i = 0;
     gettimeofday(&tv_start, NULL);
     while (i < number_of_runs) {
@@ -19,12 +19,12 @@ long workload_A(int number_of_runs) {
     return (tv_end.tv_usec - tv_start.tv_usec);
 }
 
+//Workload B
+//This will malloc() 1 byte and store it in an array, 50 times.
+//Then it will free all the 50 1 byte pointers one by one.
+//Number of Runs: 3
 long workload_B(int number_of_runs) {
     struct timeval tv_start, tv_end;
-    //B
-    //This will malloc() 1 byte and store it in an array, 50 times.
-    //Then it will free all the 50 1 byte pointers one by one.
-    //Number of Runs: 3
     char* storage[50];
     int i = 0;
     gettimeofday(&tv_start, NULL);
@@ -42,44 +42,81 @@ long workload_B(int number_of_runs) {
     return (tv_end.tv_usec - tv_start.tv_usec);
 }
 
+//Workload C
+//This will randomly choose between malloc() or free() of 1 byte size.
+//Once the number of pointers reaches 50, it will free all of them.
+//Number of Runs: 1
 long workload_C(int number_of_runs) {
     struct timeval tv_start, tv_end;
-    //C
-    //This will randomly choose between malloc() or free() of 1 byte size.
-    //Once the number of pointers reaches 50, it will free all of them.
-    //Number of Runs: 1
     char* storage[50];
     int number_of_allocated = 0;
-    int i = 0;
     gettimeofday(&tv_start, NULL);
     while (number_of_allocated != 50) {
-
+        int random_num = (rand() % 2); //Generate a random number between 0 and 1.
+        if (random_num == 0) { //If that number is 0, malloc(1)
+            storage[number_of_allocated] = malloc(1);
+            number_of_allocated++;
+        } else { //Else free the most recent malloc(1);
+            if (number_of_allocated > 0) { //If we can actually free anything.
+                free(storage[number_of_allocated - 1]);
+                number_of_allocated--;
+            }
+        }
     }
+    //FREE everything when it gets to 50.
+    int i = 0;
+    for (i; i < 50; i++) {
+        free(storage[i]);
+    }
+    gettimeofday(&tv_end, NULL);
+    return (tv_end.tv_usec - tv_start.tv_usec);
+}
+
+//Workload D
+//This will randomly choose between sizes in the range of 1 to 64 to malloc() or to just free();
+//Number of Runs: 1
+long workload_D(int number_of_runs) {
+    struct timeval tv_start, tv_end;
+    char* storage[50];
+    int number_of_allocated = 0;
+    int number_of_times_malloced = 0;
+    gettimeofday(&tv_start, NULL);
+    while (number_of_times_malloced != 50) {
+        int random_num = (rand() % 2); //Generate a random number between 0 and 1.
+        if (random_num == 0) { //If that number is 0, malloc();
+            int random_size = (rand() % 64) + 1; //Generate between 1 and 64.
+            printf("Size: %d\n", random_size);
+            storage[number_of_allocated] =  malloc(random_size);
+            number_of_times_malloced++;
+            number_of_allocated++;
+        } else { //Else free();
+            if (number_of_allocated > 0) {
+                free(storage[number_of_allocated - 1]);
+                number_of_allocated--;
+            }
+        }
+    }
+
+    int i = 0;
+    for (i; i < number_of_allocated; i++) {
+        free(storage[i]);
+    }
+    gettimeofday(&tv_end, NULL);
+    return (tv_end.tv_usec - tv_start.tv_usec);
+}
+
+
+//Calculates the average time for the given array of workloads
+long average_time(long* workload, int workload_iteration_count) {
+    long total_workload = 0;
+    int i = 0;
+    for (i; i < workload_iteration_count; i++) {
+        total_workload += workload[i];
+    }
+    return (total_workload / workload_iteration_count);
 }
 
 int main(int argc, char** argv) {
-    char* ptr1 = malloc(sizeof(char) * 3);
-    char* ptr2 = malloc(sizeof(char) * 3);
-    char* ptr3 = malloc(sizeof(char) * 3);
-    free(ptr2);
-    char* ptr4 = malloc(sizeof(char) * 1);
-    char* ptr5 = malloc(sizeof(char) * 3);
-    free(ptr3);
-    free(ptr4);
-    free(ptr5);
-    free(ptr1);
-    printf("\n\n\n");
-    ptr1 = malloc(sizeof(char) * 3);
-    ptr2 = malloc(sizeof(char) * 3);
-    ptr3 = malloc(sizeof(char) * 3);
-    free(ptr2);
-    ptr4 = malloc(sizeof(char) * 1);
-    ptr5 = malloc(sizeof(char) * 3);
-    free(ptr3);
-    free(ptr4);
-    free(ptr5);
-    free(ptr1);
-
     int workload_iteration_count = 100;
     int workload_count = 0;
     long workload_A_times[workload_iteration_count];
@@ -91,14 +128,18 @@ int main(int argc, char** argv) {
     while (workload_count < workload_iteration_count) {
         workload_A_times[workload_count] = workload_A(150);
         workload_B_times[workload_count] = workload_B(3);
+        workload_C_times[workload_count] = workload_C(1);
+        workload_D_times[workload_count] = workload_D(1);
         //printf("Workload A time was: %ld\n", workload_A());
         workload_count++;
     }
+    printf("Workload A time: %ld\n", average_time(workload_A_times, workload_iteration_count));
+    printf("Workload B time: %ld\n", average_time(workload_B_times, workload_iteration_count));
+    printf("Workload C time: %ld\n", average_time(workload_C_times, workload_iteration_count));
+    printf("Workload D time: %ld\n", average_time(workload_D_times, workload_iteration_count));
     int i = 0;
     for (i; i < workload_iteration_count; i++) {
-        printf("Workload A time: %ld\n", workload_A_times[i]);
-        printf("Workload B time: %ld\n", workload_B_times[i]);
+        printf("Workload C time %d: %ld\n", i, workload_C_times[i]);
     }
-
     return 0;
 }
