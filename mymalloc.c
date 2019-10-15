@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include "mymalloc.h"
 
-int main(int argc, char** argv) {
-    int* k = (int*)malloc(sizeof(int) * 8);
-}
+//int main(int argc, char** argv) {
+//    int* k = (int*)malloc(sizeof(int) * 8);
+//}
 
 
 static char myblock[4096];
