@@ -6,6 +6,17 @@ Our plan is as follows:
     Free the 26th pointer (the middle one).
     Going outward from the middle in both directions, free the rest of the pointers.
     Repeat this 150 times in succession.
+Workload E is designed to mimic the situation presented in Workload B. This allows direct comparison between the two.
 
 Workload F:
-For Workload F,
+Due to the structure of our metadata and memory management system, we must loop through the whole byte array in order to free and reconsolidate data.
+To test the efficiency (or maybe lack thereof), we decided a suitable workload would be to malloc() a large number of 1 byte pointers, but then free them in reverse order.
+This would not only cause in the worst possible case scenario every time a free was called, but would also cause a backwards memory consolidation.
+
+Our plan is as follows:
+    Allocate 50 1 byte pointers.
+    Free the last pointer (indexed at 49).
+    Then, loop through backwards and one by one free the rest of the pointers.
+    Repeat this 150 times.
+
+Workload F was designed to be used in comparison with Workload A and B, giving us the ability to perform time comparisons.

@@ -118,16 +118,43 @@ long workload_E(int number_of_runs) {
     gettimeofday(&tv_start, NULL);
     while (i < number_of_runs) {
         //Create the 51 1 byte pointers.
-        int j = 0;
-        for (j; j < 51; j++) {
+        int j;
+        for (j = 0; j < 51; j++) {
             storage[j] = malloc(1);
         }
         //Free those pointers from the inside out.
-        j = 0;
-        for (j; j < 25; j++) {
+        for (j = 25; j < 25; j++) {
             free(storage[25 + j]);
             free(storage[25 - j]);
         }
+        i++;
+    }
+    gettimeofday(&tv_end, NULL);
+    return (tv_end.tv_usec - tv_start.tv_usec);
+}
+
+//Workload F
+//This will malloc 50 1 byte pointers.
+//It will then free them from backwards.
+//Number of Runs: 150
+//
+//This workload is mainly to compare between workload A and how efficient our free method and merge is.
+long workload_F(int number_of_runs) {
+    struct timeval tv_start, tv_end;
+    int i = 0;
+    char* storage[50];
+    gettimeofday(&tv_start, NULL);
+    while (i < number_of_runs) {
+        //Create storage looping forwards
+        int j;
+        for (j = 0; j < 50; j++) {
+            storage[j] = malloc(1);
+        }
+        //Remove storage looping backwards
+        for (j = 49; j >= 0; j--) {
+            free(storage[j]);
+        }
+        i++;
     }
     gettimeofday(&tv_end, NULL);
     return (tv_end.tv_usec - tv_start.tv_usec);
@@ -152,6 +179,7 @@ int main(int argc, char** argv) {
     long workload_C_times[workload_iteration_count];
     long workload_D_times[workload_iteration_count];
     long workload_E_times[workload_iteration_count];
+    long workload_F_times[workload_iteration_count];
 
     while (workload_count < workload_iteration_count) {
         workload_A_times[workload_count] = workload_A(150);
@@ -159,7 +187,7 @@ int main(int argc, char** argv) {
         workload_C_times[workload_count] = workload_C(1);
         workload_D_times[workload_count] = workload_D(1);
         workload_E_times[workload_count] = workload_E(3);
-        //printf("Workload A time was: %ld\n", workload_A());
+        workload_F_times[workload_count] = workload_F(150);
         workload_count++;
     }
     printf("Workload A time: %ld\n", average_time(workload_A_times, workload_iteration_count));
@@ -167,9 +195,6 @@ int main(int argc, char** argv) {
     printf("Workload C time: %ld\n", average_time(workload_C_times, workload_iteration_count));
     printf("Workload D time: %ld\n", average_time(workload_D_times, workload_iteration_count));
     printf("Workload E time: %ld\n", average_time(workload_E_times, workload_iteration_count));
-    int i = 0;
-    for (i; i < workload_iteration_count; i++) {
-        //printf("Workload C time %d: %ld\n", i, workload_C_times[i]);
-    }
+    printf("Workload F time: %ld\n", average_time(workload_F_times, workload_iteration_count));
     return 0;
 }
