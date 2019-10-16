@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include<time.h> //Need to include time.h to record times for the workloads
-//#include "mymalloc.h"
+#include "mymalloc.h"
     
 //Workload A
 //This will malloc() one byte, and then immediately free() it.
@@ -190,6 +190,7 @@ int main(int argc, char** argv) {
         workload_F_times[workload_count] = workload_F(150);
         workload_count++;
     }
+
     printf("Workload A time: %ld\n", average_time(workload_A_times, workload_iteration_count));
     printf("Workload B time: %ld\n", average_time(workload_B_times, workload_iteration_count));
     printf("Workload C time: %ld\n", average_time(workload_C_times, workload_iteration_count));
