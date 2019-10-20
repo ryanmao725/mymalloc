@@ -29,5 +29,6 @@ unsigned short actualSize(unsigned short size);
 void setChunk(unsigned char* memchunk, unsigned short inuse, unsigned short size);
 void removeChunk(unsigned char* memchunk);
 void printMem();
+void merge();
 // End the guard definition
 #endif  // MYMALLOC_H_

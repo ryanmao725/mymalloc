@@ -18,8 +18,8 @@ void printMem() {
     while (i < MEM_SIZE) {
         unsigned char* memchunk = (unsigned char*)&myblock[i];
         printf("INDEX: %d, ADDRESS: %d\n    USE: %d, BYTESIZE: %d, SIZE: %d\n", i, memchunk, inUse(memchunk), byteWidth(memchunk) + 1, chunkSize(memchunk));
-        if (chunkSize(memchunk) > 0) {
-            i += actualSize(chunkSize(memchunk));
+        if (chunkSize(memchunk) > 0 || inUse(memchunk)) {
+            i += chunkSize(memchunk);
         } else {
             i = MEM_SIZE;
         }
@@ -30,9 +30,9 @@ void printMem() {
  * Malloc override method, that will be used instead of the default call to the malloc command
  */
 void* mymalloc(size_t size, char* file, int line) {
-    unsigned short allocationSize = 0;
-    if (size >= 64) {
-        allocationSize = 1;
+    unsigned int allocatedSize = size + 1;
+    if (allocatedSize >= 64) {
+        allocatedSize++;
     }
     unsigned int i = 0;
     while (i < MEM_SIZE) {
@@ -40,22 +40,24 @@ void* mymalloc(size_t size, char* file, int line) {
         if (inUse(memchunk) == 0) {
             unsigned short cSize = chunkSize(memchunk);
             if (cSize == 0) {
-                if (i + actualSize(size) <= MEM_SIZE) {
-                    setChunk(memchunk, 1, size);
-                    //printf("USE: %d, BYTESIZE: %d, SIZE: %d\n", inUse(memchunk), byteWidth(memchunk) + 1, chunkSize(memchunk));
+                if (i + allocatedSize <= MEM_SIZE) {
+                    setChunk(memchunk, 1, allocatedSize);
+                    setChunk(memchunk + allocatedSize, 0, 0);
                     return memchunk + byteWidth(memchunk) + 1;
                 } else {
                     break;
                 }
             } else {
-                if (actualSize(size) <= actualSize(cSize)) {
-                    setChunk(memchunk, 1, size);
-                    //printf("USE: %d, BYTESIZE: %d, SIZE: %d\n", inUse(memchunk), byteWidth(memchunk) + 1, chunkSize(memchunk));
+                if (allocatedSize <= cSize && allocatedSize > 0) {
+                    setChunk(memchunk, 1, allocatedSize);
+                    if (cSize - allocatedSize > 0) {
+                        setChunk(memchunk + allocatedSize, 0, cSize - allocatedSize);
+                    }
                     return memchunk + byteWidth(memchunk) + 1;
                 }
             }
         }
-        i += actualSize(chunkSize(memchunk));
+        i += chunkSize(memchunk);
     }
     printf("OutOfMemory Error: \n    Attempted to allocate more memory than available in line %d, %s\n", line, file);
     return NULL;
@@ -83,27 +85,23 @@ void myfree(void* ptr, char* file, int line) {
                     break;
                 }
                 if (previousFree != NULL) {
-                    int newActualSize = actualSize(chunkSize(previousFree)) + actualSize(chunkSize(memchunk));
-                    int newSize = 0;
-                    if (newActualSize <= 64) {
-                        newSize = newActualSize - 1;
-                    } else {
-                        newSize = newActualSize - 2;
-                    }
+                    int newSize = chunkSize(previousFree) + chunkSize(memchunk);
                     setChunk(previousFree, 0, newSize);
                 }
-                i += actualSize(chunkSize(memchunk));
+                i += chunkSize(memchunk);
             }
             if (previousFree == NULL) {
                 previousFree = memchunk;
             }
         } else {
             if (memchunk + 1 + byteWidth(memchunk) == ptr) {
-                removeChunk(memchunk);
+                if (actualSize(chunkSize(memchunk)) != 0) {
+                    removeChunk(memchunk);
+                }
                 removed = 1;
             } else  {
                 previousFree = NULL;
-                i += actualSize(chunkSize(memchunk));
+                i += chunkSize(memchunk);
             }
         }
     }
@@ -161,9 +159,9 @@ unsigned short chunkSize(unsigned char* memchunk) {
  */
 unsigned short actualSize(unsigned short size) {
     if (size < 64) {
-        return size + 1;
+        return size - 1;
     } else {
-        return size + 2;
+        return size - 2;
     }
 }
 /**

@@ -116,16 +116,18 @@ long workload_E(int number_of_runs) {
     int i = 0;
     char* storage[51];
     gettimeofday(&tv_start, NULL);
-    while (i < number_of_runs) {
+    while (i < 1) {
         //Create the 51 1 byte pointers.
         int j;
         for (j = 0; j < 51; j++) {
             storage[j] = malloc(1);
         }
         //Free those pointers from the inside out.
-        for (j = 25; j < 25; j++) {
+        for (j = 0; j <= 25; j++) {
             free(storage[25 + j]);
-            free(storage[25 - j]);
+            if (j != 0) {
+                free(storage[25 - j]);
+            }
         }
         i++;
     }
@@ -170,9 +172,8 @@ long average_time(long* workload, int workload_iteration_count) {
     }
     return (total_workload / workload_iteration_count);
 }
-
 int main(int argc, char** argv) {
-    int workload_iteration_count = 100;
+    int workload_iteration_count = 1;
     int workload_count = 0;
     long workload_A_times[workload_iteration_count];
     long workload_B_times[workload_iteration_count];
@@ -180,7 +181,6 @@ int main(int argc, char** argv) {
     long workload_D_times[workload_iteration_count];
     long workload_E_times[workload_iteration_count];
     long workload_F_times[workload_iteration_count];
-
     while (workload_count < workload_iteration_count) {
         workload_A_times[workload_count] = workload_A(150);
         workload_B_times[workload_count] = workload_B(3);
@@ -190,7 +190,6 @@ int main(int argc, char** argv) {
         workload_F_times[workload_count] = workload_F(150);
         workload_count++;
     }
-
     printf("Workload A time: %ld\n", average_time(workload_A_times, workload_iteration_count));
     printf("Workload B time: %ld\n", average_time(workload_B_times, workload_iteration_count));
     printf("Workload C time: %ld\n", average_time(workload_C_times, workload_iteration_count));
