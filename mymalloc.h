@@ -22,6 +22,12 @@
 void* mymalloc(size_t, char*, int);
 void myfree(void*, char*, int);
 // Helper function definition headers
-unsigned int chunksize(unsigned char* memchunk);
+unsigned short inUse(unsigned char*);
+unsigned short byteWidth(unsigned char*);
+unsigned short chunkSize(unsigned char*);
+unsigned short actualSize(unsigned short size);
+void setChunk(unsigned char* memchunk, unsigned short inuse, unsigned short size);
+void removeChunk(unsigned char* memchunk);
+void printMem();
 // End the guard definition
 #endif  // MYMALLOC_H_

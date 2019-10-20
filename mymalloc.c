@@ -13,151 +13,125 @@
 #include "mymalloc.h" // Reference our defined header file
 // Define our memory block location
 static char myblock[MEM_SIZE];
+void printMem() {
+    unsigned int i = 0;
+    while (i < MEM_SIZE) {
+        unsigned char* memchunk = (unsigned char*)&myblock[i];
+        printf("INDEX: %d, ADDRESS: %d\n    USE: %d, BYTESIZE: %d, SIZE: %d\n", i, memchunk, inUse(memchunk), byteWidth(memchunk) + 1, chunkSize(memchunk));
+        if (chunkSize(memchunk) > 0) {
+            i += actualSize(chunkSize(memchunk));
+        } else {
+            i = MEM_SIZE;
+        }
+    }
+    printf("\n\n");
+}
 /**
  * Malloc override method, that will be used instead of the default call to the malloc command
  */
 void* mymalloc(size_t size, char* file, int line) {
-    // Calculate the size that we need to store this memory
-    size_t allocSize = 1;
+    unsigned short allocationSize = 0;
     if (size >= 64) {
-        allocSize += 1;
+        allocationSize = 1;
     }
-    allocSize += size;
-    // Initialize our variables for the loop
     unsigned int i = 0;
     while (i < MEM_SIZE) {
-        // Analyze this memory chunk that we are at
-        unsigned char* memchunk = &myblock[i];
-        int inUse = (*memchunk & 1);
-        int memSize = chunksize(memchunk);
-        unsigned int bytesize = (*memchunk >> 1) & 1;
-        if (inUse == 1) { // This memory is in use, skip over it by incrementing
-            i += memSize + 1; // Increment by one regardless
-            if (memSize >= 64) { // If we have a two byte meta data, increment once more
-                i += 1;
-            }
-        } else { // This memory is not in use, analyze further
-            // Here we check two things to accomodate to scenarios
-            //  1. If we are at a free space between memory chunks, we ensure that we have enough space, or
-            //  2. If we are at the end of the memory allocated (i.e. there are no more allocated memory chunks after this point), then ensure that we have enough remaining space to store our data
-            if (memSize + 1 + bytesize >= allocSize || (memSize == 0 && MEM_SIZE >= allocSize + i)) {
-                // If we are in between memory chunks, we need to augment the memory in two ways
-                //  1. Give the user a pointer to the memory chunk
-                //  2. Take SPACE - ALLOCATED and set that to FREE (in the case that there is too much available space)
-                int newSize = -1;
-                if (memSize != 0 && memSize + 1 + bytesize - allocSize > 0) {
-                    // Get a pointer to the available space after the allocation
-                    unsigned char* ptr = memchunk + allocSize;
-                    newSize = memSize + bytesize - allocSize;
-                    // Set the bits to [0, 0|1 (depending on meta byte size), ...size]
-                    if (newSize < 64) {
-                        *(ptr) = (newSize << 2);
-                    } else {
-                        *((short*)ptr) = (size << 2) + 2 + 256;
-                    }
-                }
-                // If we have only 1 in our new size free, lets just give this to the user (we can't do anything with the 1 byte since it takes at least 1 byte for meta data)
-                if (newSize == 0) {
-                    newSize = 1;
+        unsigned char* memchunk = (unsigned char*)&myblock[i];
+        if (inUse(memchunk) == 0) {
+            unsigned short cSize = chunkSize(memchunk);
+            if (cSize == 0) {
+                if (i + actualSize(size) <= MEM_SIZE) {
+                    setChunk(memchunk, 1, size);
+                    //printf("USE: %d, BYTESIZE: %d, SIZE: %d\n", inUse(memchunk), byteWidth(memchunk) + 1, chunkSize(memchunk));
+                    return memchunk + byteWidth(memchunk) + 1;
                 } else {
-                    newSize = 0;
+                    break;
                 }
-                size += newSize;
-                // Create the pointer that we will be sending to the user. Default it to the space after the meta data (we assume that the meta data size is 1 byte initially)
-                unsigned char* returnPtr = memchunk + 1;
-                // Actually calculate the return pointer based on the bytes, and set the meta data correctly
-                //  - 1 Byte META: [1, 0, ...size]
-                //  - 2 Byte META: [1, 1, ...size][0, ...size]
-                if (size < 64) {
-                    *(memchunk) = (size << 2) + 1;
-                    returnPtr = memchunk + 1;
-                } else {
-                    *((short*)memchunk) = (size << 2) + 3 + 256;
-                    returnPtr = memchunk + 2;
-                }
-                // Return the pointer to the user
-                return returnPtr;
             } else {
-                // Unfortunately, we don't have enough space in our current memory chunk, lets go to the next available memory chunk
-                i += memSize + 1;
-                if (memSize >= 64) {
-                    i += 1;
-                }
-                // Check to see if we can still fit ANYTHING in our memory, and if not we will simply just skip to the end and terminate
-                if (MEM_SIZE < allocSize) {
-                    i = MEM_SIZE;
+                if (actualSize(size) <= actualSize(cSize)) {
+                    setChunk(memchunk, 1, size);
+                    //printf("USE: %d, BYTESIZE: %d, SIZE: %d\n", inUse(memchunk), byteWidth(memchunk) + 1, chunkSize(memchunk));
+                    return memchunk + byteWidth(memchunk) + 1;
                 }
             }
         }
+        i += actualSize(chunkSize(memchunk));
     }
-    // If we are here, we didn't find any memory slot big enough to store the information
     printf("OutOfMemory Error: \n    Attempted to allocate more memory than available in line %d, %s\n", line, file);
-    return NULL; // If we can't allocate anything, simply return a NULL
+    return NULL;
 }
 /**
  * Free override method, that will be used instead of the default call to the free command
  */
 void myfree(void* ptr, char* file, int line) {
-    if (ptr == NULL) {
-        printf("NullPointer Error: \n    Cannot deallocate null in line %d, %s\n", line, file);
-        return;
-    }
-    // Loop through the memory to merge chunks that aren't in use
-    int i = 0;
-    int deleted = 0;
-    // Create a pointer to the previous pointer location
-    unsigned char* lastchunk = NULL;
+    unsigned short removed = 0;
+    unsigned int i = 0;
+    unsigned char* previousFree = NULL;
     while (i < MEM_SIZE) {
-        unsigned char* memchunk = &myblock[i];
-        int inUse = (*memchunk & 1);
-        int memSize = chunksize(memchunk);
-        unsigned int bytesize = (*memchunk >> 1) & 1;
-        if (inUse == 0) {
-            if (lastchunk == NULL) {
-                lastchunk = memchunk;
+        unsigned char* memchunk = (unsigned char*)&myblock[i];
+        if (inUse(memchunk) == 0) {
+            unsigned short cSize = chunkSize(memchunk);
+            if (cSize == 0) {
+                if (previousFree != NULL) {
+                    setChunk(previousFree, 0, 0);
+                }
+                break;
             } else {
-                int newMemSize = chunksize(lastchunk) + memSize + 1 + bytesize;
-                if (newMemSize == 65) {
-                    newMemSize = 64;
+                if (memchunk + 1 + byteWidth(memchunk) == ptr && removed == 0) {
+                    printf("RedundantFree Error: \n    Cannot deallocated memory that was already deallocated in line %d, %s\n", line, file);
+                    removed = 1;
+                    break;
                 }
-                if (newMemSize < 64) {
-                    *(lastchunk) = (newMemSize << 2);
-                } else {
-                    *((short*)lastchunk) = (newMemSize << 2) + 2 + 256;
+                if (previousFree != NULL) {
+                    int newActualSize = actualSize(chunkSize(previousFree)) + actualSize(chunkSize(memchunk));
+                    int newSize = 0;
+                    if (newActualSize <= 64) {
+                        newSize = newActualSize - 1;
+                    } else {
+                        newSize = newActualSize - 2;
+                    }
+                    setChunk(previousFree, 0, newSize);
                 }
+                i += actualSize(chunkSize(memchunk));
             }
-            if (memchunk + 1 + bytesize == ptr && deleted != 1) {
-                deleted = 1;
-                printf("RedundantFree Error:\n    Cannot deallocate memory that was already deallocate in line %d, %s\n", line, file);
+            if (previousFree == NULL) {
+                previousFree = memchunk;
             }
         } else {
-            // Verify that this isn't the memory pointer we were given
-            if (memchunk + 1 + bytesize == ptr) {
-                if (memSize < 64) {
-                    *(memchunk) = (memSize << 2);
-                } else {
-                    *((short*)memchunk) = (memSize << 2) + 2 + 256;
-                }
-                deleted = 1;
-                continue;
+            if (memchunk + 1 + byteWidth(memchunk) == ptr) {
+                removeChunk(memchunk);
+                removed = 1;
+            } else  {
+                previousFree = NULL;
+                i += actualSize(chunkSize(memchunk));
             }
-            lastchunk = NULL;
-        }
-        // iterate through the memory
-        i += memSize + 1;
-        if (memSize >= 64) {
-            i += 1;
-        }
-        if (memSize == 0) {
-            break;
         }
     }
-    if (lastchunk != NULL) {
-        *(lastchunk) = 0;
-    }
-    if (deleted != 1) {
+    if (removed == 0) {
         printf("Deallocation Error: \n    Attempted to deallocate an invalid pointer in line %d, %s\n", line, file);
     }
+}
+/**
+ * Helper function to extract the inUse flag of a memory chunk
+ * parameters
+ *  unsigned char* memchunk: Pointer to the beginning of the memory chunk
+ *
+ * returns
+ *  integer representing a boolean value of whether or not the chunk is in use
+ */
+unsigned short inUse(unsigned char* memchunk) {
+    return *memchunk & 1;
+}
+/**
+ * Helper function byte width
+ * parameters
+ *  unsigned char* memchunk: Pointer to the beginning of the memory chunk
+ *
+ * returns
+ *  integer representing the allocation byte size of the meta data
+ */
+unsigned short byteWidth(unsigned char* memchunk) {
+    return (*memchunk >> 1) & 1;
 }
 /**
  * Helper function to extract the chunk size given a pointer to the start of a memory slot
@@ -168,9 +142,9 @@ void myfree(void* ptr, char* file, int line) {
  * returns
  *  integer representing the byte size of the corresponding memory chunk
  */
-unsigned int chunksize(unsigned char* memchunk) {
+unsigned short chunkSize(unsigned char* memchunk) {
     // Figure out the meta data byte size
-    unsigned int bytesize = (*memchunk >> 1) & 1;
+    unsigned short bytesize = byteWidth(memchunk);
     if (bytesize == 0) {
         // If the meta data is 1 byte long, we can simply bit shift right twice
         return (*memchunk >> 2);
@@ -179,6 +153,37 @@ unsigned int chunksize(unsigned char* memchunk) {
         //  - Go into the next byte (hence the unsigned short castig)
         //  - Subtract 256 from the new number (which will remove the middle 0 value)
         //  - Bit shift right twice once more, to remove the byte information
-        return (*((unsigned short*)memchunk) - 256) >> 2;
+        return (*(unsigned short*)memchunk) >> 2;
     }
+}
+/**
+ * Given a memory size, find the actual number of bytes we need to store the data as well as the meta data
+ */
+unsigned short actualSize(unsigned short size) {
+    if (size < 64) {
+        return size + 1;
+    } else {
+        return size + 2;
+    }
+}
+/**
+ * Given a memory size, set the cooresponding meta data for the memory chunk
+ */
+void setChunk(unsigned char* memchunk, unsigned short inuse, unsigned short size) {
+    if (size < 64) {
+        *(memchunk) = // Set the value of the 1 byte meta data
+            (size << 2) // Shift over the size information by 2 bits, since we need this for the inuse/bytewidth flags
+            + inuse; // Set the inuse flag
+    } else {
+        *((short*)memchunk) = // Set the value of the 2 byte meta data
+            (size << 2) // Shift over the size information by 2 bits, since we need this for the inuse/bytewidth flags
+            + inuse // Set the inuse flag
+            + 2; // Set the bytewidth flag
+    }
+}
+/**
+ * Given a memory location, mark it not in use
+ */
+void removeChunk(unsigned char* memchunk) {
+    setChunk(memchunk, 0, chunkSize(memchunk));
 }
