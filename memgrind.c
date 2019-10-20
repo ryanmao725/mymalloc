@@ -190,11 +190,11 @@ int main(int argc, char** argv) {
         workload_F_times[workload_count] = workload_F(150);
         workload_count++;
     }
-    printf("Workload A time: %ld\n", average_time(workload_A_times, workload_iteration_count));
-    printf("Workload B time: %ld\n", average_time(workload_B_times, workload_iteration_count));
-    printf("Workload C time: %ld\n", average_time(workload_C_times, workload_iteration_count));
-    printf("Workload D time: %ld\n", average_time(workload_D_times, workload_iteration_count));
-    printf("Workload E time: %ld\n", average_time(workload_E_times, workload_iteration_count));
-    printf("Workload F time: %ld\n", average_time(workload_F_times, workload_iteration_count));
+    printf("Workload A time in microseconds: %ld\n", average_time(workload_A_times, workload_iteration_count));
+    printf("Workload B time in microseconds: %ld\n", average_time(workload_B_times, workload_iteration_count));
+    printf("Workload C time in microseconds: %ld\n", average_time(workload_C_times, workload_iteration_count));
+    printf("Workload D time in microseconds: %ld\n", average_time(workload_D_times, workload_iteration_count));
+    printf("Workload E time in microseconds: %ld\n", average_time(workload_E_times, workload_iteration_count));
+    printf("Workload F time in microseconds: %ld\n", average_time(workload_F_times, workload_iteration_count));
     return 0;
 }
